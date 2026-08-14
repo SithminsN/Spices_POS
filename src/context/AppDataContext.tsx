@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import type { ReactNode } from 'react'
 import { recomputeProduct } from '../lib/calculations'
 import { diffCollection } from '../data/diff'
-import { ensureAuthenticated, subscribeCollection, syncCollection } from '../data/firestoreSync'
+import { firebaseInitError, subscribeCollection, syncCollection } from '../data/firestoreSync'
 import type {
   CashEntry,
   CashEntryInput,
@@ -197,22 +197,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [products, transactions, cashEntries])
 
   useEffect(() => {
-    let unsubProducts = () => {}
-    let unsubTransactions = () => {}
-    let unsubCashEntries = () => {}
+    if (firebaseInitError) {
+      setSyncError(firebaseInitError)
+      setIsSyncing(false)
+      return
+    }
 
-    ensureAuthenticated()
-      .then(() => {
-        unsubProducts = subscribeCollection<Product>('products', setProducts)
-        unsubTransactions = subscribeCollection<Transaction>('transactions', setTransactions)
-        unsubCashEntries = subscribeCollection<CashEntry>('cash_entries', setCashEntries)
-        setIsSyncing(false)
-      })
-      .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : 'Failed to connect to Firestore.'
-        setSyncError(message)
-        setIsSyncing(false)
-      })
+    const unsubProducts = subscribeCollection<Product>('products', setProducts)
+    const unsubTransactions = subscribeCollection<Transaction>('transactions', setTransactions)
+    const unsubCashEntries = subscribeCollection<CashEntry>('cash_entries', setCashEntries)
+    setIsSyncing(false)
 
     return () => {
       unsubProducts()

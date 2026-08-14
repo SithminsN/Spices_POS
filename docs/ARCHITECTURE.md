@@ -110,17 +110,15 @@ grids for stat cards on desktop.
 ## Firestore sync
 
 The database is a Firebase project on the free **Spark** plan — Firestore
-for data, Anonymous Authentication as a lightweight access gate (no login
-screen; it signs in silently in the background). Three files own this,
-and nothing else in the app touches Firestore:
+only, no Firebase Auth (see "Security model" below for why). Three files
+own this, and nothing else in the app touches Firestore:
 
-- **`src/data/firebase.ts`** — initializes the Firebase app, Firestore
-  (with a persistent local cache — see below), and Auth, from the
-  `VITE_FIREBASE_*` env vars in `.env`.
-- **`src/data/firestoreSync.ts`** — `ensureAuthenticated()` (signs in
-  anonymously if needed, resolves once a session exists),
-  `subscribeCollection()` (wraps `onSnapshot`), and `syncCollection()`
-  (batches `setDoc`/`deleteDoc` for a given list of documents/ids).
+- **`src/data/firebase.ts`** — initializes the Firebase app and Firestore
+  (with a persistent local cache — see below) from the `VITE_FIREBASE_*`
+  env vars in `.env`.
+- **`src/data/firestoreSync.ts`** — `subscribeCollection()` (wraps
+  `onSnapshot`) and `syncCollection()` (batches `setDoc`/`deleteDoc` for a
+  given list of documents/ids).
 - **`src/data/diff.ts`** — `diffCollection(prev, next)` compares two
   versions of an id-keyed array and returns exactly which items were
   added/changed and which ids were removed, by value (not object
@@ -151,15 +149,20 @@ and Firestore syncs to the server in the background. Combined with
 save/edit/delete without any hand-rolled optimistic-update code: the
 local cache update alone is enough to fire the listener and re-render.
 
-**Security model.** Firestore rules (set in the Firebase console, not in
-this repo) require `request.auth != null` — i.e. *some* signed-in session,
-anonymous or not — but data isn't partitioned per-uid; every anonymous
-session shares the same dataset. That's intentional for a single-user
-personal tool used from multiple devices (phone + desktop) with no login
-UI: it's a meaningfully higher bar than a fully open database, but it is
-**not** real per-user security. If this app is ever shared with anyone
-else, replace anonymous auth with real sign-in (email/password or Google)
-and scope rules/queries to `request.auth.uid`.
+**Security model.** There is no auth layer at all — Firestore rules (set
+in the Firebase console, not in this repo) are wide open:
+`allow read, write: if true`. This was a deliberate choice for a
+single-user personal tool used from multiple devices (phone + desktop)
+with no login UI: anonymous auth was tried first as a lightweight gate,
+but it added setup friction (a separate console step, a class of errors
+if it wasn't enabled) for a database that only ever holds one person's
+spice-trading ledger. The real tradeoff: **anyone who obtains this
+project's config values (visible in the deployed app's JS bundle once
+hosted) can read and write this data with no restriction whatsoever.**
+Acceptable for personal, non-sensitive business data with a low-traffic
+deployment; revisit immediately if this app is ever shared with anyone
+else or holds anything more sensitive — add real sign-in (email/password
+or Google) and scope rules/queries to `request.auth.uid`.
 
 ## Deployment (free tier)
 
