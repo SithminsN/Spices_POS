@@ -1,0 +1,58 @@
+/* ---------- Icon variant ---------- */
+
+.confirm-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, padding 0.15s ease;
+}
+
+.confirm-btn-icon:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-cinnamon-dark);
+}
+
+.confirm-btn-icon.is-confirming,
+.confirm-btn-icon.is-confirming:hover {
+  background: var(--color-danger);
+  color: var(--color-text-on-dark);
+  border-color: var(--color-danger);
+  padding: 6px 12px;
+  animation: confirm-pulse 1.1s ease-in-out infinite;
+}
+
+.confirm-btn-icon-text {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.confirm-btn-icon-glyph {
+  line-height: 1;
+}
+
+/* ---------- Button variant ---------- */
+
+.confirm-btn.is-confirming {
+  filter: brightness(0.92);
+  animation: confirm-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes confirm-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--color-danger-bg);
+  }
+  50% {
+    box-shadow: 0 0 0 5px var(--color-danger-bg);
+  }
+}

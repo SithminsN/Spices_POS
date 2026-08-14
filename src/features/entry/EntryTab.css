@@ -1,0 +1,84 @@
+.entry-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.entry-tab__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.entry-tab__toggle {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.entry-tab__toggle .chip {
+  flex: 1;
+  justify-content: center;
+}
+
+.entry-tab__qty-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.entry-tab__deduction {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.entry-tab__warning {
+  font-size: 0.85rem;
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.entry-tab__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.entry-tab__total-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.entry-tab__total-value {
+  font-size: 1.6rem;
+  font-family: var(--font-display);
+}
+
+.entry-tab__recent {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .entry-tab {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-6);
+    align-items: start;
+  }
+
+  .entry-tab__qty-fields {
+    flex-direction: row;
+  }
+
+  .entry-tab__qty-fields .field {
+    flex: 1;
+  }
+}

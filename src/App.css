@@ -1,0 +1,47 @@
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-content {
+  padding-top: var(--space-4);
+}
+
+.app-loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-7) 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+}
+
+.app-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-5) 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.app-error strong {
+  font-family: var(--font-display);
+}
+
+.app-error span {
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    display: flex;
+  }
+
+  .app-content {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    padding-top: var(--space-6);
+  }
+}

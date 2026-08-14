@@ -1,0 +1,39 @@
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  min-width: 0;
+}
+
+.stat-card-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.stat-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.stat-card-value-positive {
+  color: var(--color-profit);
+}
+
+.stat-card-value-negative {
+  color: var(--color-loss);
+}
+
+.stat-card-value-accent {
+  color: var(--color-turmeric-dark);
+}
+
+.stat-card-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}

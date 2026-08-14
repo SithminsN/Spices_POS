@@ -1,0 +1,30 @@
+.cash-tab__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.cash-tab__stats > .stat-card {
+  flex: 1 1 140px;
+}
+
+.cash-tab__form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+@media (min-width: 1024px) {
+  .cash-tab__stats > .stat-card {
+    flex: 1;
+  }
+
+  .cash-tab__form-fields {
+    flex-direction: row;
+  }
+
+  .cash-tab__form-fields .field {
+    flex: 1;
+  }
+}

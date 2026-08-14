@@ -1,0 +1,129 @@
+.txn-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.txn-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.txn-row__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.txn-row__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.txn-row__type {
+  flex-shrink: 0;
+}
+
+.txn-row__type--buy {
+  background: var(--color-debit-bg);
+}
+
+.txn-row__type--sell {
+  background: var(--color-credit-bg);
+}
+
+.txn-row__product {
+  font-weight: 600;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.txn-row__total {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.txn-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.txn-row__note {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.txn-row__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* ---------- Edit mode ---------- */
+
+.txn-row--editing {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+.txn-row__type-toggle {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.txn-row__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.txn-row__deduction {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.txn-row__warning {
+  font-size: 0.85rem;
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.txn-row__actions--edit {
+  justify-content: flex-end;
+}
+
+@media (min-width: 1024px) {
+  .txn-row__fields {
+    flex-direction: row;
+  }
+
+  .txn-row__fields .field {
+    flex: 1;
+  }
+
+  .txn-row__meta {
+    font-size: 0.85rem;
+  }
+}

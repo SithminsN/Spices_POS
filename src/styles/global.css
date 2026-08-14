@@ -1,0 +1,272 @@
+/*
+  Global reset, typography, and reusable primitives (.btn, .card, .chip,
+  .badge, .num, ...). Every feature/component should reuse these classes
+  instead of redefining button/card/chip styles locally — that's what keeps
+  six independently-built tabs looking like one app. See
+  docs/ARCHITECTURE.md "Design system".
+*/
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-cinnamon-dark);
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+/* Tabular figures for every number in the app: stat cards, ledger rows, totals. */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ---------- Layout containers ---------- */
+
+.page {
+  max-width: var(--mobile-max-width);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-4) var(--space-7);
+}
+
+@media (min-width: 1024px) {
+  .page {
+    max-width: var(--desktop-max-width);
+    padding: var(--space-6) var(--space-6) var(--space-7);
+  }
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--color-cinnamon-dark);
+  margin-bottom: var(--space-2);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease, background-color 0.15s ease;
+  line-height: 1.2;
+}
+
+.btn:active {
+  filter: brightness(0.92);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-cinnamon);
+  color: var(--color-text-on-dark);
+}
+
+.btn-secondary {
+  background: var(--color-surface-alt);
+  color: var(--color-cinnamon-dark);
+  border-color: var(--color-border);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 6px 10px;
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: var(--color-text-on-dark);
+}
+
+.btn-icon {
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid transparent;
+}
+
+.btn-icon:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-cinnamon-dark);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+}
+
+/* ---------- Chips (filter chips, measurement-type badges) ---------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip.is-active {
+  background: var(--color-cinnamon);
+  color: var(--color-text-on-dark);
+  border-color: var(--color-cinnamon);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-weight {
+  background: var(--color-turmeric-light);
+  color: var(--color-cinnamon-dark);
+}
+
+.badge-count {
+  background: var(--color-surface-alt);
+  color: var(--color-cinnamon-dark);
+  border: 1px solid var(--color-border);
+}
+
+/* ---------- Semantic amount text ---------- */
+
+.amount-credit {
+  color: var(--color-credit);
+  font-weight: 700;
+}
+
+.amount-debit {
+  color: var(--color-debit);
+  font-weight: 700;
+}
+
+.amount-profit {
+  color: var(--color-profit);
+  font-weight: 700;
+}
+
+.amount-loss {
+  color: var(--color-loss);
+  font-weight: 700;
+}
+
+/* ---------- Forms ---------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.field input,
+.field select,
+.field textarea {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid var(--color-turmeric);
+  outline-offset: 1px;
+}
+
+/* ---------- Empty states ---------- */
+
+.empty-state {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: var(--space-6) var(--space-4);
+}

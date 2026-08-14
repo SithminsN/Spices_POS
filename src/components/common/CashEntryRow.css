@@ -1,0 +1,75 @@
+.cash-entry-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.cash-entry-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.cash-entry-row__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.cash-entry-row__label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.cash-entry-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.cash-entry-row__note {
+  overflow-wrap: anywhere;
+}
+
+.cash-entry-row__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.cash-entry-row--editing {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.cash-entry-row--editing .cash-entry-row__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cash-entry-row--editing .cash-entry-row__actions {
+  justify-content: flex-end;
+}
+
+@media (min-width: 1024px) {
+  .cash-entry-row--editing .cash-entry-row__fields {
+    flex-direction: row;
+  }
+
+  .cash-entry-row--editing .cash-entry-row__fields .field {
+    flex: 1;
+  }
+}

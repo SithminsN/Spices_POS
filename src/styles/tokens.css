@@ -1,0 +1,71 @@
+/*
+  Design tokens for the spice-market theme. Every color/font/spacing value
+  used anywhere in the app should come from one of these variables — never
+  hardcode a hex color or font name in a component's CSS file. See
+  docs/ARCHITECTURE.md "Design system" for the rationale.
+*/
+:root {
+  /* Fonts */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Base palette — cinnamon browns, turmeric gold, clove maroon, cardamom green */
+  --color-cinnamon: #7a3b1e;
+  --color-cinnamon-dark: #5a2a14;
+  --color-cinnamon-light: #a8683f;
+  --color-turmeric: #e0a324;
+  --color-turmeric-dark: #b9840f;
+  --color-turmeric-light: #f6d688;
+  --color-clove: #6b2233;
+  --color-clove-dark: #4a1522;
+  --color-cardamom: #4a6b3a;
+  --color-cardamom-dark: #354f29;
+
+  /* Backgrounds & surfaces */
+  --color-bg: #fbf3e6;
+  --color-surface: #fffdf9;
+  --color-surface-alt: #f5e8d2;
+  --color-border: #e2c99f;
+  --color-border-strong: #cfa863;
+
+  /* Text */
+  --color-text: #3a2717;
+  --color-text-muted: #8a6a4e;
+  --color-text-on-dark: #fdf6e9;
+
+  /* Semantic */
+  --color-credit: #3f6b30;
+  --color-credit-bg: #e7f0e0;
+  --color-debit: #a3352a;
+  --color-debit-bg: #f6e2df;
+  --color-profit: #3f6b30;
+  --color-loss: #a3352a;
+  --color-warning: #b9840f;
+  --color-warning-bg: #fbeecb;
+  --color-danger: #a3352a;
+  --color-danger-bg: #f6e2df;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Radii & shadow */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 3px rgba(58, 27, 12, 0.12);
+  --shadow-md: 0 4px 16px rgba(58, 27, 12, 0.14);
+
+  /* Layout */
+  --mobile-max-width: 480px;
+  --desktop-max-width: 1180px;
+  --tab-bar-height: 60px;
+  --sidebar-width: 220px;
+
+  /* Breakpoint reference (used as literal px in media queries): 1024px */
+}
