@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import type { Product } from '../../types'
+import type { DayPurchaseSummary, Product } from '../../types'
 import { formatCurrency, formatQtyWithUnit } from '../../lib/format'
 import './ProductPicker.css'
 
 interface ProductPickerProps {
   products: Product[]
+  /** Today's buys per productId, shown on the right of each row (see getPurchasesOnDay). */
+  todayPurchases: Map<string, DayPurchaseSummary>
   selectedProductId: string | null
   onSelect: (productId: string) => void
 }
 
 /** Search-and-select control for choosing a product on the Entry tab. */
-export function ProductPicker({ products, selectedProductId, onSelect }: ProductPickerProps) {
+export function ProductPicker({ products, todayPurchases, selectedProductId, onSelect }: ProductPickerProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
 
@@ -72,19 +74,36 @@ export function ProductPicker({ products, selectedProductId, onSelect }: Product
         {filteredProducts.length === 0 ? (
           <p className="empty-state">No matching products.</p>
         ) : (
-          filteredProducts.map((product) => (
-            <button
-              key={product.id}
-              type="button"
-              className="product-picker-row"
-              onClick={() => handleSelect(product.id)}
-            >
-              <span className="product-picker-row-name">{product.name}</span>
-              <span className="product-picker-row-meta num">
-                {formatQtyWithUnit(product.stock, product.unit)} · {formatCurrency(product.avgCost)}
-              </span>
-            </button>
-          ))
+          filteredProducts.map((product) => {
+            const today = todayPurchases.get(product.id)
+            return (
+              <button
+                key={product.id}
+                type="button"
+                className="product-picker-row"
+                onClick={() => handleSelect(product.id)}
+              >
+                <span className="product-picker-row-info">
+                  <span className="product-picker-row-name">{product.name}</span>
+                  <span className="product-picker-row-meta num">
+                    {formatQtyWithUnit(product.stock, product.unit)} · {formatCurrency(product.avgCost)}
+                  </span>
+                </span>
+                <span className="product-picker-row-today num">
+                  {today ? (
+                    <>
+                      <span>
+                        Today: {formatQtyWithUnit(today.qty, product.unit)} · Avg {formatCurrency(today.avgPrice)}
+                      </span>
+                      <span className="product-picker-row-spent">Spent {formatCurrency(today.spent)}</span>
+                    </>
+                  ) : (
+                    <span>No purchases today</span>
+                  )}
+                </span>
+              </button>
+            )
+          })
         )}
       </div>
     </div>

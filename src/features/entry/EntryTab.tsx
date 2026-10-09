@@ -4,8 +4,8 @@ import { useAppData } from '../../context/AppDataContext'
 import { useToast } from '../../context/ToastContext'
 import { ProductPicker } from '../../components/common/ProductPicker'
 import { TransactionRow } from '../../components/common/TransactionRow'
-import { wouldGoNegative } from '../../lib/calculations'
-import { formatCurrency, formatQty, formatQtyWithUnit } from '../../lib/format'
+import { getPurchasesOnDay, wouldGoNegative } from '../../lib/calculations'
+import { dateKeyOf, formatCurrency, formatQty, formatQtyWithUnit } from '../../lib/format'
 import './EntryTab.css'
 
 /** Empty string means "not entered yet"; anything else must be a positive number to count as valid. */
@@ -58,6 +58,10 @@ export default function EntryTab() {
     () => transactions.slice().sort((a, b) => b.timestamp - a.timestamp).slice(0, 5),
     [transactions],
   )
+
+  // todayKey is a dependency so the figures roll over at midnight on the next render.
+  const todayKey = dateKeyOf(Date.now())
+  const todayPurchases = useMemo(() => getPurchasesOnDay(transactions, todayKey), [transactions, todayKey])
 
   function resetEntryFields() {
     setGrossInput('')
@@ -117,7 +121,12 @@ export default function EntryTab() {
 
         <div className="field">
           <label>Product</label>
-          <ProductPicker products={products} selectedProductId={selectedProductId} onSelect={handleSelectProduct} />
+          <ProductPicker
+            products={products}
+            todayPurchases={todayPurchases}
+            selectedProductId={selectedProductId}
+            onSelect={handleSelectProduct}
+          />
         </div>
 
         {selectedProduct && (

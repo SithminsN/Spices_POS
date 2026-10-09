@@ -47,7 +47,7 @@ One row per purchase (`buy`) or sale (`sell`). This is the Ledger.
 | `total` | number | `netQty * price`. Derived, stored for convenient display/history. |
 | `profit` | number \| null | Sells only: `(price - avgCostAtSaleTime) * netQty`. `null` for buys. |
 | `note` | string | Free text — customer/supplier name, etc. |
-| `timestamp` | number (epoch ms) | When the transaction happened (defaults to save time, but edits can change it). |
+| `timestamp` | number (epoch ms) | When the transaction happened. Set to the save time on entry; the edit form's Date/Time fields can change it, which re-orders the product's replay (see [BUSINESS_LOGIC.md](./BUSINESS_LOGIC.md#editing-a-transactions-date)). |
 
 ## `cash_entries`
 
@@ -60,7 +60,7 @@ loans, and expenses. This is the Cash tab's ledger.
 | `type` | `'capital_in' \| 'loan_in' \| 'loan_in_repay' \| 'loan_out' \| 'loan_out_repay' \| 'expense'` | See [BUSINESS_LOGIC.md](./BUSINESS_LOGIC.md#cash-drawer-formula) for how each affects the cash drawer balance. |
 | `amount` | number | Always positive; the `type` determines direction. |
 | `note` | string | Free text. |
-| `timestamp` | number (epoch ms) | |
+| `timestamp` | number (epoch ms) | Save time on entry; editable via the edit form's Date/Time fields. |
 
 ## Relationships
 

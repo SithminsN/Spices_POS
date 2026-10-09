@@ -2,7 +2,7 @@
 // caller -- nothing else in the app talks to Firestore directly. See
 // docs/ARCHITECTURE.md "Firestore sync" for how this fits together with
 // the pure reducer in AppDataContext.tsx.
-import { collection, doc, onSnapshot, writeBatch } from 'firebase/firestore'
+import { collection, doc, onSnapshot, waitForPendingWrites, writeBatch } from 'firebase/firestore'
 import type { DocumentData } from 'firebase/firestore'
 import { db, firebaseInitError } from './firebase'
 
@@ -43,5 +43,19 @@ export async function syncCollection<T extends WithId>(
   for (const id of toDeleteIds) {
     batch.delete(doc(db!, collectionName, id))
   }
+  // Offline, this neither resolves nor rejects: the write is kept in the
+  // on-device cache and sent when the connection returns. It rejects only
+  // if the server refuses the write (which also undoes it locally).
   await batch.commit()
+}
+
+/**
+ * Resolves once every write queued so far has reached the server --
+ * including writes queued offline in an earlier session, which the
+ * on-device cache keeps. Resolves immediately if nothing is pending; never
+ * rejects just for being offline. AppDataContext uses it to know when
+ * changes exist only on this device.
+ */
+export function whenWritesSynced(): Promise<void> {
+  return waitForPendingWrites(db!)
 }

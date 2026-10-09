@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ComponentType } from 'react'
 import { TabBar } from './components/layout/TabBar'
+import { ConnectionStatus } from './components/layout/ConnectionStatus'
 import { ToastHost } from './components/common/ToastHost'
 import { ToastProvider } from './context/ToastContext'
 import { AppDataProvider, useAppData } from './context/AppDataContext'
@@ -63,7 +64,10 @@ function AppShell() {
         ) : isSyncing ? (
           <div className="app-loading">Connecting…</div>
         ) : (
-          <ActiveTabComponent />
+          <>
+            <ConnectionStatus />
+            <ActiveTabComponent />
+          </>
         )}
       </main>
     </div>

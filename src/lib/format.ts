@@ -37,11 +37,54 @@ export function dateKeyOf(timestamp: number): string {
   return `${y}-${m}-${day}`
 }
 
+/**
+ * Inverse of dateKeyOf(): epoch ms of local midnight at the start of a
+ * yyyy-mm-dd day (e.g. an <input type="date"> value). Built from parts on
+ * purpose -- `new Date('yyyy-mm-dd')` parses as UTC midnight, which is
+ * 05:30 in Sri Lanka and would silently drop the first hours of the day.
+ */
+export function startOfDateKey(dateKey: string): number {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return new Date(y, m - 1, d).getTime()
+}
+
+/** The yyyy-mm-dd key `days` calendar days after `dateKey` (before, if negative). */
+export function shiftDateKey(dateKey: string, days: number): string {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return dateKeyOf(new Date(y, m - 1, d + days).getTime())
+}
+
+/** "HH:MM" (24h) in local time -- the value format of <input type="time">. */
+export function timeKeyOf(timestamp: number): string {
+  const d = new Date(timestamp)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+/**
+ * Local timestamp for a date + time picked in edit inputs, or null if either
+ * is blank/incomplete. Returns `original` untouched when the inputs still
+ * show its date and time; otherwise keeps `original`'s seconds/ms, so moving
+ * a record to another day keeps its order among records from the same minute.
+ */
+export function timestampFromInputs(dateKey: string, timeKey: string, original: number): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || !/^\d{2}:\d{2}/.test(timeKey)) return null
+  if (dateKey === dateKeyOf(original) && timeKey.slice(0, 5) === timeKeyOf(original)) return original
+  const [y, m, d] = dateKey.split('-').map(Number)
+  const [hh, mm] = timeKey.split(':').map(Number)
+  const o = new Date(original)
+  return new Date(y, m - 1, d, hh, mm, o.getSeconds(), o.getMilliseconds()).getTime()
+}
+
 const fullDateFormatter = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
 })
+
+/** "14 Aug 2026" */
+export function formatDate(timestamp: number): string {
+  return fullDateFormatter.format(new Date(timestamp))
+}
 
 /** "Today" / "Yesterday" / "14 Aug 2026", based on a given `now`. */
 export function formatDayLabel(timestamp: number, now: number): string {

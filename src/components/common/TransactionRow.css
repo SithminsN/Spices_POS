@@ -102,6 +102,24 @@
   color: var(--color-text-muted);
 }
 
+/* Under the Date/Time fields: where the edit moves the transaction, or why the date is invalid. */
+.txn-row__date-note {
+  margin-top: calc(var(--space-2) * -1);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.txn-row__date-note--error {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.txn-row__error {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
 .txn-row__warning {
   font-size: 0.85rem;
   color: var(--color-warning);
