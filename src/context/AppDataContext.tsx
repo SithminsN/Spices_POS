@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import type { ReactNode } from 'react'
 import { recomputeProduct } from '../lib/calculations'
 import { diffCollection } from '../data/diff'
-import { firebaseInitError, subscribeCollection, syncCollection } from '../data/firestoreSync'
+import { firebaseInitError, subscribeCollection, syncCollection, whenWritesSynced } from '../data/firestoreSync'
 import type {
   CashEntry,
   CashEntryInput,
@@ -164,11 +164,37 @@ function reducer(state: AppDataState, action: Action): AppDataState {
 
 const EMPTY_STATE: AppDataState = { products: [], transactions: [], cashEntries: [] }
 
+/** What the user was doing, for the "couldn't save" message. */
+const ACTION_LABELS: Record<Action['type'], string> = {
+  ADD_PRODUCT: 'Adding a product',
+  DELETE_PRODUCT: 'Deleting a product',
+  ADD_TRANSACTION: 'Saving a sale or purchase',
+  UPDATE_TRANSACTION: 'Editing a transaction',
+  DELETE_TRANSACTION: 'Deleting a transaction',
+  ADD_CASH_ENTRY: 'Adding a cash entry',
+  UPDATE_CASH_ENTRY: 'Editing a cash entry',
+  DELETE_CASH_ENTRY: 'Deleting a cash entry',
+}
+
+/** A write the server refused. Firestore undoes it locally, so it must be re-entered. */
+export interface SaveError {
+  id: string
+  action: string
+  detail: string
+}
+
 export interface AppDataContextValue extends AppDataState {
   /** True until the initial Firestore snapshot has loaded (see App.tsx). */
   isSyncing: boolean
-  /** Set if connecting to Firestore (auth or initial subscribe) failed -- see App.tsx. */
+  /** Set if Firebase failed to initialize (bad/missing .env values) -- see App.tsx. */
   syncError: string | null
+  /** When the browser went offline (epoch ms), or null while online. */
+  offlineSince: number | null
+  /** Since when some changes exist only on this device (not yet on the server), or null. */
+  unsyncedSince: number | null
+  /** Writes the server refused since the user last dismissed them. */
+  saveErrors: SaveError[]
+  dismissSaveErrors(): void
   addProduct(input: NewProductInput): void
   deleteProduct(id: string): void
   addTransaction(input: TransactionInput): void
@@ -187,6 +213,37 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [cashEntries, setCashEntries] = useState<CashEntry[]>([])
   const [isSyncing, setIsSyncing] = useState(true)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [offlineSince, setOfflineSince] = useState<number | null>(() => (navigator.onLine ? null : Date.now()))
+  const [unsyncedSince, setUnsyncedSince] = useState<number | null>(null)
+  const [saveErrors, setSaveErrors] = useState<SaveError[]>([])
+  const pendingCheck = useRef(0)
+
+  useEffect(() => {
+    const handleOnline = () => setOfflineSince(null)
+    const handleOffline = () => setOfflineSince((since) => since ?? Date.now())
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  /**
+   * Marks "some changes are only on this device" until Firestore confirms
+   * every write queued so far has reached the server. Only the most recent
+   * check may clear the flag, since a newer write may still be in flight.
+   */
+  function trackPendingWrites() {
+    const check = ++pendingCheck.current
+    setUnsyncedSince((since) => since ?? Date.now())
+    whenWritesSynced().then(
+      () => {
+        if (check === pendingCheck.current) setUnsyncedSince(null)
+      },
+      () => {},
+    )
+  }
 
   // Mirrors the three state arrays above so a mutation fired immediately
   // after a previous one (before its Firestore round trip lands) still
@@ -207,6 +264,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const unsubTransactions = subscribeCollection<Transaction>('transactions', setTransactions)
     const unsubCashEntries = subscribeCollection<CashEntry>('cash_entries', setCashEntries)
     setIsSyncing(false)
+    // Picks up writes still queued from an earlier session (e.g. the app was
+    // closed while offline); resolves at once if there are none.
+    trackPendingWrites()
 
     return () => {
       unsubProducts()
@@ -224,6 +284,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const transactionsDiff = diffCollection(prev.transactions, next.transactions)
     const cashEntriesDiff = diffCollection(prev.cashEntries, next.cashEntries)
 
+    const hasWrites = [productsDiff, transactionsDiff, cashEntriesDiff].some(
+      (d) => d.toWrite.length > 0 || d.toDeleteIds.length > 0,
+    )
+    if (!hasWrites) return
+
     // Local UI updates once these writes land in Firestore's local cache and
     // the onSnapshot listeners above fire -- near-instant, including offline,
     // thanks to the persistent local cache configured in data/firebase.ts.
@@ -232,8 +297,22 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       syncCollection('transactions', transactionsDiff.toWrite, transactionsDiff.toDeleteIds),
       syncCollection('cash_entries', cashEntriesDiff.toWrite, cashEntriesDiff.toDeleteIds),
     ]).catch((error: unknown) => {
+      // Only a server refusal lands here (offline writes just wait). Firestore
+      // has already undone the change locally, so tell the user to redo it.
       console.error('Failed to sync to Firestore', error)
+      const code = (error as { code?: unknown } | null)?.code
+      const message = error instanceof Error ? error.message : String(error)
+      setSaveErrors((errors) => [
+        ...errors,
+        {
+          id: crypto.randomUUID(),
+          action: ACTION_LABELS[action.type],
+          detail: typeof code === 'string' ? `${code}: ${message}` : message,
+        },
+      ])
     })
+    // Must run after the commits above are issued, so it waits for them too.
+    trackPendingWrites()
   }
 
   const value = useMemo<AppDataContextValue>(
@@ -243,6 +322,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       cashEntries,
       isSyncing,
       syncError,
+      offlineSince,
+      unsyncedSince,
+      saveErrors,
+      dismissSaveErrors: () => setSaveErrors([]),
       addProduct: (input) => dispatch({ type: 'ADD_PRODUCT', input }),
       deleteProduct: (id) => dispatch({ type: 'DELETE_PRODUCT', id }),
       addTransaction: (input) => dispatch({ type: 'ADD_TRANSACTION', input }),
@@ -252,7 +335,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       updateCashEntry: (id, input) => dispatch({ type: 'UPDATE_CASH_ENTRY', id, input }),
       deleteCashEntry: (id) => dispatch({ type: 'DELETE_CASH_ENTRY', id }),
     }),
-    [products, transactions, cashEntries, isSyncing, syncError],
+    [products, transactions, cashEntries, isSyncing, syncError, offlineSince, unsyncedSince, saveErrors],
   )
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>

@@ -47,11 +47,14 @@
   background: var(--color-surface);
 }
 
+/* Two columns: name + overall stock on the left, today's purchases on the
+   right. On very narrow screens the right column wraps under the left. */
 .product-picker-row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
   width: 100%;
   text-align: left;
   padding: var(--space-3) var(--space-4);
@@ -70,6 +73,13 @@
   background: var(--color-surface-alt);
 }
 
+.product-picker-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .product-picker-row-name {
   font-weight: 600;
   color: var(--color-text);
@@ -78,6 +88,22 @@
 .product-picker-row-meta {
   font-size: 0.8rem;
   color: var(--color-text-muted);
+}
+
+.product-picker-row-today {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-left: auto;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.product-picker-row-spent {
+  font-weight: 600;
+  color: var(--color-debit);
 }
 
 .product-picker-list .empty-state {

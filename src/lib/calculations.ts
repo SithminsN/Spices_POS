@@ -2,7 +2,16 @@
 // formula documented in docs/BUSINESS_LOGIC.md — keep them in sync.
 import { CASH_IN_TYPES, CASH_OUT_TYPES } from './constants'
 import { dateKeyOf } from './format'
-import type { CashEntry, CashSummary, DayGroup, Product, ProductAggregates, Transaction } from '../types'
+import type {
+  CashEntry,
+  CashSummary,
+  DateRange,
+  DayGroup,
+  DayPurchaseSummary,
+  Product,
+  ProductPeriodSummary,
+  Transaction,
+} from '../types'
 
 function round(value: number, decimals: number): number {
   const factor = 10 ** decimals
@@ -70,30 +79,140 @@ export function wouldGoNegative(product: Product, netQty: number): boolean {
   return product.stock - netQty < 0
 }
 
-export function getProductAggregates(productId: string, transactions: Transaction[]): ProductAggregates {
-  const aggregates: ProductAggregates = {
-    totalBoughtQty: 0,
-    totalPurchaseCost: 0,
-    totalSoldQty: 0,
-    totalSaleRevenue: 0,
-    totalProfit: 0,
-    totalDeduction: 0,
+/**
+ * Replays a product's transactions in date order (same ordering as
+ * recomputeProduct) and returns the lowest stock it reaches and when
+ * (timestamp null = the opening stock itself). Used to warn when editing a
+ * transaction -- e.g. moving a sale to an earlier date -- would make stock
+ * go negative at some point in the past, not just today.
+ */
+export function getLowestStockPoint(
+  product: Product,
+  transactions: Transaction[],
+): { stock: number; timestamp: number | null } {
+  const ownSorted = transactions
+    .filter((t) => t.productId === product.id)
+    .sort((a, b) => a.timestamp - b.timestamp || a.id.localeCompare(b.id))
+  let stock = product.openingStock
+  let lowest: { stock: number; timestamp: number | null } = { stock: roundQty(stock), timestamp: null }
+  for (const t of ownSorted) {
+    stock = t.type === 'buy' ? stock + t.netQty : stock - t.netQty
+    if (roundQty(stock) < lowest.stock) lowest = { stock: roundQty(stock), timestamp: t.timestamp }
   }
+  return lowest
+}
+
+/**
+ * When a product's history starts: when it was added, or earlier if a
+ * transaction has been moved to a date before that. The Stock tab's date
+ * filter uses this to decide whether a product existed in a period.
+ */
+export function getHistoryStart(product: Product, transactions: Transaction[]): number {
+  let start = product.createdAt
   for (const t of transactions) {
-    if (t.productId !== productId) continue
-    if (t.grossQty != null) {
-      aggregates.totalDeduction = roundQty(aggregates.totalDeduction + (t.grossQty - t.netQty))
-    }
+    if (t.productId === product.id && t.timestamp < start) start = t.timestamp
+  }
+  return start
+}
+
+/** True if `timestamp` falls inside the half-open `range` [start, endExclusive). */
+export function isInRange(timestamp: number, range: DateRange): boolean {
+  return (range.start == null || timestamp >= range.start) && (range.endExclusive == null || timestamp < range.endExclusive)
+}
+
+/**
+ * A product's stock movement over `range`: opening stock, what was bought
+ * and sold inside the range, profit, and closing stock/avgCost/value.
+ *
+ * Opening and closing figures come from replaying the product's
+ * transactions from openingStock/openingCost with the same buy/sell rules
+ * and ordering as recomputeProduct() -- stopped at the range boundaries.
+ * This is read-only (nothing is stored), and with an all-time range its
+ * closing stock/avgCost equal the product's stored stock/avgCost.
+ * See docs/BUSINESS_LOGIC.md "Stock tab date filter".
+ */
+export function getProductPeriodSummary(
+  product: Product,
+  transactions: Transaction[],
+  range: DateRange,
+): ProductPeriodSummary {
+  const ownSorted = transactions
+    .filter((t) => t.productId === product.id)
+    .sort((a, b) => a.timestamp - b.timestamp || a.id.localeCompare(b.id))
+
+  let stock = product.openingStock
+  let avgCost = product.openingCost
+  let openingStock: number | null = range.start == null ? stock : null
+  let boughtQty = 0
+  let spent = 0
+  let soldQty = 0
+  let revenue = 0
+  let profit = 0
+  let deducted = 0
+
+  for (const t of ownSorted) {
+    if (range.endExclusive != null && t.timestamp >= range.endExclusive) break
+    if (openingStock == null && range.start != null && t.timestamp >= range.start) openingStock = stock
+
     if (t.type === 'buy') {
-      aggregates.totalBoughtQty = roundQty(aggregates.totalBoughtQty + t.netQty)
-      aggregates.totalPurchaseCost = roundMoney(aggregates.totalPurchaseCost + t.total)
+      const newStock = stock + t.netQty
+      avgCost = newStock === 0 ? avgCost : (stock * avgCost + t.netQty * t.price) / newStock
+      stock = newStock
     } else {
-      aggregates.totalSoldQty = roundQty(aggregates.totalSoldQty + t.netQty)
-      aggregates.totalSaleRevenue = roundMoney(aggregates.totalSaleRevenue + t.total)
-      aggregates.totalProfit = roundMoney(aggregates.totalProfit + (t.profit ?? 0))
+      stock = stock - t.netQty
+    }
+
+    if (!isInRange(t.timestamp, range)) continue
+    if (t.grossQty != null) deducted = roundQty(deducted + (t.grossQty - t.netQty))
+    if (t.type === 'buy') {
+      boughtQty = roundQty(boughtQty + t.netQty)
+      spent = roundMoney(spent + t.total)
+    } else {
+      soldQty = roundQty(soldQty + t.netQty)
+      revenue = roundMoney(revenue + t.total)
+      profit = roundMoney(profit + (t.profit ?? 0))
     }
   }
-  return aggregates
+
+  // No transaction at/after the range start: the stock simply carried through.
+  if (openingStock == null) openingStock = stock
+
+  const closingStock = roundQty(stock)
+  const closingAvgCost = roundCost(avgCost)
+  return {
+    openingStock: roundQty(openingStock),
+    boughtQty,
+    spent,
+    avgBuyPrice: boughtQty > 0 ? roundCost(spent / boughtQty) : 0,
+    soldQty,
+    revenue,
+    avgSellPrice: soldQty > 0 ? roundCost(revenue / soldQty) : 0,
+    profit,
+    deducted,
+    closingStock,
+    closingAvgCost,
+    closingValue: roundMoney(closingStock * closingAvgCost),
+  }
+}
+
+/**
+ * Per-product purchase totals for one local calendar day (`dateKey` from
+ * dateKeyOf()), keyed by productId. Products with no buys that day are
+ * absent from the map. See docs/BUSINESS_LOGIC.md "Today's purchases".
+ */
+export function getPurchasesOnDay(transactions: Transaction[], dateKey: string): Map<string, DayPurchaseSummary> {
+  const byProduct = new Map<string, DayPurchaseSummary>()
+  for (const t of transactions) {
+    if (t.type !== 'buy' || dateKeyOf(t.timestamp) !== dateKey) continue
+    const summary = byProduct.get(t.productId) ?? { qty: 0, spent: 0, avgPrice: 0 }
+    summary.qty = roundQty(summary.qty + t.netQty)
+    summary.spent = roundMoney(summary.spent + t.total)
+    byProduct.set(t.productId, summary)
+  }
+  for (const summary of byProduct.values()) {
+    summary.avgPrice = summary.qty > 0 ? roundCost(summary.spent / summary.qty) : 0
+  }
+  return byProduct
 }
 
 export function getStockValue(products: Product[]): number {

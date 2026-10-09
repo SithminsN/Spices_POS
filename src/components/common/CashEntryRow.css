@@ -64,6 +64,13 @@
   justify-content: flex-end;
 }
 
+.cash-entry-row__date-error {
+  margin-top: calc(var(--space-2) * -1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
 @media (min-width: 1024px) {
   .cash-entry-row--editing .cash-entry-row__fields {
     flex-direction: row;

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import type { CashEntry, CashEntryType } from '../../types'
 import { CASH_ENTRY_TYPE_LABELS, CASH_IN_TYPES } from '../../lib/constants'
-import { formatCurrency, formatDateTime } from '../../lib/format'
+import { dateKeyOf, formatCurrency, formatDate, formatDateTime, timeKeyOf, timestampFromInputs } from '../../lib/format'
 import { useAppData } from '../../context/AppDataContext'
 import { useToast } from '../../context/ToastContext'
 import { ConfirmButton } from './ConfirmButton'
+import { DateTimeFields } from './DateTimeFields'
 import './CashEntryRow.css'
 
 const CASH_ENTRY_TYPES = Object.keys(CASH_ENTRY_TYPE_LABELS) as CashEntryType[]
@@ -21,11 +22,25 @@ export function CashEntryRow({ entry }: CashEntryRowProps) {
   const [type, setType] = useState<CashEntryType>(entry.type)
   const [amount, setAmount] = useState(entry.amount)
   const [note, setNote] = useState(entry.note)
+  const [dateInput, setDateInput] = useState(() => dateKeyOf(entry.timestamp))
+  const [timeInput, setTimeInput] = useState(() => timeKeyOf(entry.timestamp))
+
+  const editedTimestamp = timestampFromInputs(dateInput, timeInput, entry.timestamp)
+  // Only a changed date is checked against the clock, so an entry stamped by
+  // a device whose clock runs slightly ahead can still be edited.
+  const dateError =
+    editedTimestamp == null
+      ? 'Pick a date and time.'
+      : editedTimestamp !== entry.timestamp && editedTimestamp > Date.now()
+        ? "The date and time can't be in the future."
+        : null
 
   function startEdit() {
     setType(entry.type)
     setAmount(entry.amount)
     setNote(entry.note)
+    setDateInput(dateKeyOf(entry.timestamp))
+    setTimeInput(timeKeyOf(entry.timestamp))
     setIsEditing(true)
   }
 
@@ -34,8 +49,10 @@ export function CashEntryRow({ entry }: CashEntryRowProps) {
       showToast('Enter a valid amount', 'error')
       return
     }
-    updateCashEntry(entry.id, { type, amount, note, timestamp: entry.timestamp })
-    showToast('Entry updated')
+    if (editedTimestamp == null || dateError != null) return
+    updateCashEntry(entry.id, { type, amount, note, timestamp: editedTimestamp })
+    const movedToOtherDay = dateKeyOf(editedTimestamp) !== dateKeyOf(entry.timestamp)
+    showToast(movedToOtherDay ? `Entry moved to ${formatDate(editedTimestamp)}` : 'Entry updated')
     setIsEditing(false)
   }
 
@@ -84,11 +101,23 @@ export function CashEntryRow({ entry }: CashEntryRowProps) {
             />
           </div>
         </div>
+        <DateTimeFields
+          idPrefix={`cash-${entry.id}`}
+          date={dateInput}
+          time={timeInput}
+          onDateChange={setDateInput}
+          onTimeChange={setTimeInput}
+        />
+        {dateError != null && (
+          <div className="cash-entry-row__date-error" role="alert">
+            {dateError}
+          </div>
+        )}
         <div className="cash-entry-row__actions">
           <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>
             Cancel
           </button>
-          <button type="button" className="btn btn-primary" onClick={handleSave}>
+          <button type="button" className="btn btn-primary" onClick={handleSave} disabled={dateError != null}>
             Save
           </button>
         </div>
@@ -116,7 +145,21 @@ export function CashEntryRow({ entry }: CashEntryRowProps) {
         <button type="button" className="btn-icon" aria-label="Edit entry" onClick={startEdit}>
           ✎
         </button>
-        <ConfirmButton variant="icon" onConfirm={handleDelete} />
+        <ConfirmButton
+          variant="icon"
+          label="Delete entry"
+          title="Delete cash entry?"
+          details={
+            <>
+              <strong>{CASH_ENTRY_TYPE_LABELS[entry.type]}</strong>
+              <span className="num">{formatCurrency(entry.amount)}</span>
+              <span>{formatDateTime(entry.timestamp)}</span>
+              {entry.note !== '' && <span>{entry.note}</span>}
+            </>
+          }
+          message="Cash drawer and loan totals will be recalculated. This can't be undone."
+          onConfirm={handleDelete}
+        />
       </div>
     </div>
   )

@@ -99,8 +99,10 @@ Rationale: a transaction with no product to recompute against can't have a
 meaningful stock/avgCost/profit, and letting it linger in the Ledger with a
 dangling reference would be more confusing than useful for a personal,
 single-user ledger. If you delete a product by mistake, there's no undo —
-that's why product delete (like every delete in this app) requires
-tap-to-confirm.
+that's why product delete opens a confirmation modal where the product's
+name must be typed before Confirm is enabled. Every other delete
+(transactions, cash entries) opens a yes/no confirmation modal
+(`ConfirmButton` → `ConfirmDialog`).
 
 ## Cash drawer formula
 
@@ -143,6 +145,85 @@ counting:
 
 `totalWeightDeducted` sums `grossQty - netQty` across that day's
 weight-type transactions (buys and sells both).
+
+## Today's purchases (Entry tab product list)
+
+`getPurchasesOnDay(transactions, dateKey)` sums each product's **buy**
+transactions on one local calendar day (same `dateKeyOf()` bucketing as
+the daily cashbook). The Entry tab calls it with today's key and shows the
+result on the right of each product in the picker:
+
+```
+qty      = sum of netQty           (today's buys only)
+spent    = sum of total            (netQty * price per buy)
+avgPrice = spent / qty             (weighted by quantity)
+```
+
+`avgPrice` is weighted, not a plain average of prices: buying 100 kg at
+Rs. 300 and 400 kg at Rs. 200 gives 500 kg, Rs. 110,000 spent, avg
+Rs. 220 (not Rs. 250). Like stock, quantities are **net**, not gross.
+Display-only — nothing here is stored.
+
+## Stock tab date filter
+
+The Stock tab's start/end dates select **whole local calendar days**: the
+half-open range `[00:00 on start date, 00:00 on the day after end date)`.
+Either side can be empty (open-ended). `startOfDateKey()` builds local
+midnight from the date parts — never `new Date('yyyy-mm-dd')`, which is
+UTC and would drop 00:00–05:30 Sri Lanka time. `isInRange()` is the one
+boundary check everything uses.
+
+`getProductPeriodSummary(product, transactions, range)` returns a stock
+movement statement per product:
+
+```
+openingStock  = stock at the start of the range
++ boughtQty   (spent,   avgBuyPrice  = spent / boughtQty)
+- soldQty     (revenue, avgSellPrice = revenue / soldQty)
+= closingStock  (closingAvgCost, closingValue = closingStock * closingAvgCost)
+profit        = sum of the stored profit on sells in the range
+deducted      = sum of (grossQty - netQty) in the range
+```
+
+Opening/closing stock and closing avg cost come from replaying the
+product's transactions with the **same rules and ordering as
+`recomputeProduct()`**, stopped at the range boundaries — so the closing
+avg cost is exactly what the running weighted average was at that moment.
+It is read-only: nothing is stored. With no range (all time), closing
+stock/avg cost equal the product's stored `stock`/`avgCost`.
+
+- A product's history starts at `getHistoryStart()`: when it was added,
+  or earlier if a transaction was back-dated before that. If the history
+  starts inside the range, opening stock is its `openingStock`.
+- Products whose history starts after the range ends are hidden (they
+  didn't exist yet).
+- With a filter, the row header shows stock, avg cost and value **as at
+  the end of the range**; without one it shows the stored current values.
+- Product delete still counts and deletes **all** of a product's
+  transactions, whatever the filter.
+
+## Editing a transaction's date
+
+New entries never ask for a date — they're stamped with the save time.
+Editing a transaction (Entry → Recent Transactions, Ledger, Daily, a
+product's list on the Stock tab — all the same `TransactionRow`) shows
+**Date** and **Time** fields pre-filled with its current `timestamp`.
+Cash entries get the same fields.
+
+- `timestampFromInputs()` builds the new local timestamp. Unchanged
+  inputs return the original timestamp exactly; a changed date keeps the
+  original seconds/ms, so the record keeps its order among others from
+  the same minute. Future dates/times are rejected (Save is disabled).
+- Saving goes through the normal `UPDATE_TRANSACTION` →
+  `recomputeProduct()` path. Because replay is in `timestamp` order,
+  moving a transaction changes stock/avgCost and the stored `profit` of
+  any later sales of that product — exactly as if it had been entered on
+  that date. Every tab reads the one `timestamp`, so Ledger order, Recent
+  Transactions, Daily grouping, today's purchases and the Stock filter all
+  follow automatically.
+- The edit form's negative-stock warning replays the product's history
+  with the edit applied (`getLowestStockPoint()`) and warns only if the
+  edit makes stock dip lower than it already did, naming the date.
 
 ## Low stock and most valuable stock
 

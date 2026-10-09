@@ -31,7 +31,8 @@ src/
     ToastContext.tsx    Toast queue used by every save/edit/delete action
   components/
     layout/           TabBar (app shell chrome)
-    common/           Reusable pieces used by 2+ tabs: ToastHost, ConfirmButton, StatCard,
+    common/           Reusable pieces used by 2+ tabs: ToastHost, ConfirmButton (+ the
+                       ConfirmDialog modal it opens for every delete), StatCard,
                        ProductPicker, TransactionRow, CashEntryRow
   features/
     entry/  stock/  ledger/  cash/  daily/  report/
@@ -148,6 +149,24 @@ and Firestore syncs to the server in the background. Combined with
 `onSnapshot` listeners, this is what gives the UI its instant feedback on
 save/edit/delete without any hand-rolled optimistic-update code: the
 local cache update alone is enough to fire the listener and re-render.
+
+**Offline and refused saves.** Offline, a write is *not* lost and does
+*not* fail: `batch.commit()` simply stays pending while Firestore keeps
+the write in the on-device cache (surviving reloads) and sends it when the
+connection returns. So the app tracks two things in `AppDataContext`:
+
+- `offlineSince` — from the browser's `online`/`offline` events.
+- `unsyncedSince` — set on every write, cleared when
+  `whenWritesSynced()` (Firestore's `waitForPendingWrites`) confirms the
+  server has everything. It is also checked on startup, so writes still
+  queued from an earlier session are noticed.
+
+`components/layout/ConnectionStatus.tsx` turns these into a banner
+(offline, or saving slower than 10 s), a modal once the problem has lasted
+a minute (once per outage), and a "Back online — all changes are saved"
+toast when the queue empties. A commit only *rejects* when the server
+refuses the write (e.g. security rules); Firestore then undoes it locally,
+and `saveErrors` shows a modal naming what to re-enter.
 
 **Security model.** There is no auth layer at all — Firestore rules (set
 in the Firebase console, not in this repo) are wide open:

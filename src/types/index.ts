@@ -86,14 +86,49 @@ export interface CashEntryInput {
   timestamp?: number
 }
 
-export interface ProductAggregates {
-  totalBoughtQty: number
-  totalPurchaseCost: number
-  totalSoldQty: number
-  totalSaleRevenue: number
-  totalProfit: number
-  /** sum of (grossQty - netQty) across all of this product's weight-type transactions */
-  totalDeduction: number
+/**
+ * Half-open time range [start, endExclusive) in epoch ms. null means
+ * unbounded on that side, so { start: null, endExclusive: null } is all time.
+ */
+export interface DateRange {
+  start: number | null
+  endExclusive: number | null
+}
+
+/** One product's stock movement over a DateRange (Stock tab). */
+export interface ProductPeriodSummary {
+  /** stock at the start of the range -- openingStock if the product's history starts inside it */
+  openingStock: number
+  boughtQty: number
+  /** sum of buy totals in the range */
+  spent: number
+  /** spent / boughtQty, weighted by quantity; 0 if nothing was bought */
+  avgBuyPrice: number
+  soldQty: number
+  /** sum of sell totals in the range */
+  revenue: number
+  /** revenue / soldQty, weighted by quantity; 0 if nothing was sold */
+  avgSellPrice: number
+  /** sum of the stored profit on sells in the range */
+  profit: number
+  /** sum of (grossQty - netQty) across weight-type transactions in the range */
+  deducted: number
+  /** stock at the end of the range; always openingStock + boughtQty - soldQty */
+  closingStock: number
+  /** running weighted-average cost at the end of the range */
+  closingAvgCost: number
+  /** closingStock * closingAvgCost */
+  closingValue: number
+}
+
+/** One product's purchases on a single calendar day (the Entry tab's "Today" figures). */
+export interface DayPurchaseSummary {
+  /** sum of netQty across that day's buys */
+  qty: number
+  /** sum of that day's buy totals (netQty * price) */
+  spent: number
+  /** spent / qty -- weighted by quantity, not a plain average of the prices */
+  avgPrice: number
 }
 
 export interface CashSummary {

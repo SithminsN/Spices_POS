@@ -1,81 +1,71 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import { ConfirmDialog } from './ConfirmDialog'
+import type { ConfirmDialogProps } from './ConfirmDialog'
 import './ConfirmButton.css'
 
-const CONFIRM_TIMEOUT_MS = 3000
-
-interface ConfirmButtonProps {
-  onConfirm: () => void
+type ConfirmButtonProps = Omit<ConfirmDialogProps, 'onCancel'> & {
   /** 'icon': small icon-only control for a row action. 'button': full-width labeled danger button. */
   variant?: 'icon' | 'button'
+  /** Button text ('button' variant) or accessible name/tooltip ('icon' variant). */
   label?: string
-  confirmLabel?: string
   className?: string
 }
 
 /**
- * Tap-to-confirm control used for every destructive action in the app.
- * First click arms a ~3s "confirming" state; a second click within that
- * window fires onConfirm(). No click before the timeout silently reverts —
- * onConfirm is never called on its own. Replaces window.confirm/alert.
+ * Trigger used for every destructive action in the app. Clicking it opens a
+ * ConfirmDialog; onConfirm runs only when the user confirms there (yes/no,
+ * or typing `typeToConfirm` first -- used for product delete). Cancelling
+ * changes nothing. Replaces window.confirm/alert.
  */
 export function ConfirmButton({
-  onConfirm,
   variant = 'icon',
   label = 'Delete',
-  confirmLabel = 'Confirm?',
   className = '',
+  onConfirm,
+  ...dialogProps
 }: ConfirmButtonProps) {
-  const [confirming, setConfirming] = useState(false)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    }
-  }, [])
-
-  function handleClick() {
-    if (confirming) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-      setConfirming(false)
-      onConfirm()
-      return
-    }
-    setConfirming(true)
-    timeoutRef.current = setTimeout(() => {
-      setConfirming(false)
-      timeoutRef.current = null
-    }, CONFIRM_TIMEOUT_MS)
+  function handleConfirm() {
+    setIsOpen(false)
+    onConfirm()
   }
 
-  if (variant === 'button') {
-    return (
+  function handleCancel() {
+    setIsOpen(false)
+    triggerRef.current?.focus()
+  }
+
+  const trigger =
+    variant === 'button' ? (
       <button
+        ref={triggerRef}
         type="button"
-        className={`btn btn-danger btn-block confirm-btn ${confirming ? 'is-confirming' : ''} ${className}`.trim()}
-        onClick={handleClick}
+        className={`btn btn-danger btn-block ${className}`.trim()}
+        onClick={() => setIsOpen(true)}
       >
-        {confirming ? confirmLabel : label}
+        {label}
       </button>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      className={`btn-icon confirm-btn-icon ${confirming ? 'is-confirming' : ''} ${className}`.trim()}
-      onClick={handleClick}
-      aria-label={confirming ? confirmLabel : label}
-      title={confirming ? confirmLabel : label}
-    >
-      {confirming ? (
-        <span className="confirm-btn-icon-text">{confirmLabel}</span>
-      ) : (
+    ) : (
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`btn-icon confirm-btn-icon ${className}`.trim()}
+        onClick={() => setIsOpen(true)}
+        aria-label={label}
+        title={label}
+      >
         <span className="confirm-btn-icon-glyph" aria-hidden="true">
           🗑
         </span>
-      )}
-    </button>
+      </button>
+    )
+
+  return (
+    <>
+      {trigger}
+      {isOpen && <ConfirmDialog {...dialogProps} onConfirm={handleConfirm} onCancel={handleCancel} />}
+    </>
   )
 }
